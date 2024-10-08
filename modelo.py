@@ -9,8 +9,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 class Emprendimiento(base):
     __tablename__ = "Registrate"
-    # Clave primaria basada en documento (único por naturaleza)
-    documento = Column(Integer, primary_key=True, autoincrement=True)
+    documento = Column(String(30), primary_key=True, autoincrement=False)
     # Nombre del emprendimiento, no debe ser nulo
     nombreEmprendimiento = Column(String(50), nullable=False, index=True)
     # Tipo de emprendimiento, no debe ser nulo
@@ -25,6 +24,8 @@ class Emprendimiento(base):
     contraseña = Column(String(150), nullable=False)
     # Roles
     rol = Column(String(30), nullable=False)
+
+
 
 
 class Rol(base):

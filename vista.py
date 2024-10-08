@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from conexion import crear, get_db
 from modelo import base, Emprendimiento
 from sqlalchemy.orm import session
-from shemas import Registrarse, Usuario, EliminarUsuario, RolCreate
+from shemas import Registrarse, Usuario, EliminarUsuario, RolCreate, EmprendimientoResponse
 from modelo import Usuario as Usuarios, Rol
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -39,19 +39,21 @@ async def crear_rol(rol: RolCreate, db: session = Depends(get_db)):
         "nombreRol": nuevo_rol.nombreRol
     }
 
-# El endpoint para registrar una nueva empresa
-@app.post("/registrate", response_model=Registrarse)
+@app.post("/registrate", response_model=EmprendimientoResponse)
 async def registrarEmpresa(model: Registrarse, db: session = Depends(get_db)):
     # Verificar si el nombre del emprendimiento ya existe
     nombre_empresa = db.query(Emprendimiento).filter(Emprendimiento.nombreEmprendimiento == model.nombreEmprendimiento).first()
     if nombre_empresa:
         raise HTTPException(status_code=400, detail="El nombre del emprendimiento ya existe")
+    
     # Verificar si el documento ya está registrado
     documento_existente = db.query(Emprendimiento).filter(Emprendimiento.documento == model.documento).first()
     if documento_existente:
         raise HTTPException(status_code=400, detail="El documento ya está registrado")
+    
     # Encriptar la contraseña
     contraseña_encriptada = bcrypt.hashpw(model.contraseña.encode('utf-8'), bcrypt.gensalt())
+
     # Crear una nueva instancia del modelo `Emprendimiento`
     nuevo_emprendimiento = Emprendimiento(
         nombreEmprendimiento=model.nombreEmprendimiento,
@@ -60,23 +62,25 @@ async def registrarEmpresa(model: Registrarse, db: session = Depends(get_db)):
         nombreRegistro=model.nombreRegistro,
         documento=model.documento,
         correoElectronico=model.correoElectronico,
-        contraseña=contraseña_encriptada.decode('utf-8'),
+        contraseña=contraseña_encriptada.decode('utf-8'),  # Almacenar la contraseña encriptada.
         rol=model.rol
     )
+
     # Agregar y guardar el nuevo emprendimiento en la base de datos
     db.add(nuevo_emprendimiento)
     db.commit()  # Confirmar los cambios
     db.refresh(nuevo_emprendimiento)  # Actualizar el objeto `nuevo_emprendimiento` con los datos de la base de datos
-    # Retornar la respuesta con los datos registrados
-    return {
-        "nombreEmprendimiento": nuevo_emprendimiento.nombreEmprendimiento,
-        "tipoEmprendimiento": nuevo_emprendimiento.tipoEmprendimiento,
-        "numeroEmpleados": nuevo_emprendimiento.numeroEmpleados,
-        "nombreRegistro": nuevo_emprendimiento.nombreRegistro,
-        "documento": nuevo_emprendimiento.documento,
-        "correoElectronico": nuevo_emprendimiento.correoElectronico,
-        "rol": nuevo_emprendimiento.rol
-    }
+
+    # Retornar la respuesta con los datos registrados usando el nuevo modelo sin contraseña.
+    return EmprendimientoResponse(
+        nombreEmprendimiento=nuevo_emprendimiento.nombreEmprendimiento,
+        tipoEmprendimiento=nuevo_emprendimiento.tipoEmprendimiento,
+        numeroEmpleados=nuevo_emprendimiento.numeroEmpleados,
+        nombreRegistro=nuevo_emprendimiento.nombreRegistro,
+        documento=nuevo_emprendimiento.documento,
+        correoElectronico=nuevo_emprendimiento.correoElectronico,
+        rol=nuevo_emprendimiento.rol
+    )
 
 @app.post("/usuario")
 async def crear_usuario(usuario: Usuario, db: session = Depends(get_db)):

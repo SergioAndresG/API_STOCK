@@ -5,9 +5,18 @@ class Registrarse(BaseModel):
     tipoEmprendimiento: str
     numeroEmpleados: int
     nombreRegistro: str
-    documento: int
+    documento: str
     correoElectronico: str
     contraseña: str
+    rol: str
+
+class EmprendimientoResponse(BaseModel):
+    nombreEmprendimiento: str
+    tipoEmprendimiento: str
+    numeroEmpleados: int
+    nombreRegistro: str
+    documento: str
+    correoElectronico: str
     rol: str
 
 class RolCreate(BaseModel):
