@@ -31,3 +31,8 @@ class Usuario(BaseModel):
 class EliminarUsuario(BaseModel):
     usuario_id: int
     contraseña: str
+
+class Login(BaseModel):
+   nombre_emprendimiento: str
+   rol:str
+   password:str 

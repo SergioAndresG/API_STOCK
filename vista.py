@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from conexion import crear, get_db
 from modelo import base, Emprendimiento
 from sqlalchemy.orm import session
-from shemas import Registrarse, Usuario, EliminarUsuario, RolCreate, EmprendimientoResponse
+from shemas import Registrarse, Usuario, EliminarUsuario, RolCreate, EmprendimientoResponse, Login
 from modelo import Usuario as Usuarios, Rol
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -81,6 +81,21 @@ async def registrarEmpresa(model: Registrarse, db: session = Depends(get_db)):
         correoElectronico=nuevo_emprendimiento.correoElectronico,
         rol=nuevo_emprendimiento.rol
     )
+
+@app.post("/login")
+async def login(user:Login,db:session=Depends(get_db)):
+    db_user=db.query(Registrarse).filter(Registrarse == user.nombre_emprendimiento,
+                                         Registrarse.rol == user.rol).first()
+    if db_user is None:
+        raise HTTPException(status_code=400, detail="Empremdimiento o tipo de usario incorrecto")
+    if not bcrypt.checkpw(user.password.encode('utf-8'),db_user.password.encode('utf-8')):
+        raise HTTPException(status_code=400, detail="Contraseña incorrecta")
+    
+    return{
+        "mensaje":"Inicio de sesión Ok",
+        "nombreEmprendiminto":db_user.nombre_emprendimiento,
+        "rol":db_user.rol
+    }
 
 @app.post("/usuario")
 async def crear_usuario(usuario: Usuario, db: session = Depends(get_db)):
