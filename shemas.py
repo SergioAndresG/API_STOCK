@@ -28,6 +28,14 @@ class Usuario(BaseModel):
     rolUsuario: str  # Aquí debe estar el campo rolUsuario
     password: str
 
+class UsuarioCreate(BaseModel):
+    nombre_usuario: str
+    documento: str
+    correoElectronico: str
+    contraseña: str
+    rol_id: int
+    nombreEmprendimiento: str
+
 class EliminarUsuario(BaseModel):
     usuario_id: int
     contraseña: str

@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from conexion import crear, get_db
 from modelo import base, Emprendimiento
 from sqlalchemy.orm import session
-from shemas import Registrarse, Usuario, EliminarUsuario, RolCreate, EmprendimientoResponse, Login
+from shemas import Registrarse, UsuarioCreate, EliminarUsuario, RolCreate, EmprendimientoResponse, Login
 from modelo import Usuario as Usuarios, Rol
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -12,11 +12,17 @@ base.metadata.create_all(bind=crear)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:8000"],  # Agrega la URL de tu frontend
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Permitir todos los métodos (GET, POST, etc.)
+    allow_headers=["*"],  # Permitir todos los encabezados
 )
+
+
+@app.get("/empleados")
+async def consultar(db: session = Depends(get_db)):
+    empleados = db.query(Usuarios).all()
+    return empleados
 
 # Endpoint para crear un nuevo rol
 @app.post("/roles", response_model=RolCreate)
@@ -83,22 +89,24 @@ async def registrarEmpresa(model: Registrarse, db: session = Depends(get_db)):
     )
 
 @app.post("/login")
-async def login(user:Login,db:session=Depends(get_db)):
-    db_user=db.query(Registrarse).filter(Registrarse == user.nombre_emprendimiento,
-                                         Registrarse.rol == user.rol).first()
+async def login(user: Login, db: session = Depends(get_db)):
+    # Filtrar correctamente usando la columna del modelo
+    db_user = db.query(Emprendimiento).filter(Emprendimiento.nombreEmprendimiento == user.nombre_emprendimiento).first()
+    
     if db_user is None:
-        raise HTTPException(status_code=400, detail="Empremdimiento o tipo de usario incorrecto")
-    if not bcrypt.checkpw(user.password.encode('utf-8'),db_user.password.encode('utf-8')):
+        raise HTTPException(status_code=400, detail="Emprendimiento o tipo de usuario incorrecto")
+    
+    if not bcrypt.checkpw(user.password.encode('utf-8'), db_user.contraseña.encode('utf-8')):
         raise HTTPException(status_code=400, detail="Contraseña incorrecta")
     
-    return{
-        "mensaje":"Inicio de sesión Ok",
-        "nombreEmprendiminto":db_user.nombre_emprendimiento,
-        "rol":db_user.rol
+    return {
+        "mensaje": "Inicio de sesión OK",
+        "nombreEmprendimiento": db_user.nombreEmprendimiento,
+        "rol": db_user.rol
     }
 
 @app.post("/usuario")
-async def crear_usuario(usuario: Usuario, db: session = Depends(get_db)):
+async def crear_usuario(usuario: UsuarioCreate, db: session = Depends(get_db)):
     # Buscar el rol por `rol_id`
     rol = db.query(Rol).filter(Rol.id == usuario.rol_id).first()
     if not rol:
@@ -112,7 +120,8 @@ async def crear_usuario(usuario: Usuario, db: session = Depends(get_db)):
         documento=usuario.documento,
         correoElectronico=usuario.correoElectronico,
         contraseña=contraseña_encriptada.decode('utf-8'),
-        rol_id=usuario.rol_id  # Asignar el rol
+        rol_id=usuario.rol_id,  # Asignar el rol
+        nombreEmprendimiento=usuario.nombreEmprendimiento
     )
     # Guardar en la base de datos
     db.add(nuevo_usuario)
